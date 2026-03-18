@@ -7,6 +7,13 @@ let shakeTime = 0
 let stars
 let radius = 0.3
 let angle = 0.1
+let powerUps = []
+
+let shieldActive = false
+let shieldTime = 0
+
+let slowMotionActive = false
+let slowMotionTime = 0
 
 let playerRotateZ = 0
 let playerRotateX = 0
@@ -54,6 +61,67 @@ loader.load('/spaceship.glb', (gltf) => {
     player.position.set(0, 0, 0)
     player.rotation.set(0, 600, 0)
 })
+
+function spawnPowerUp() {
+    const geo = new THREE.IcosahedronGeometry(0.4)
+    const mat = new THREE.MeshStandardMaterial({ color: 0x00ffcc })
+
+    const power = new THREE.Mesh(geo, mat)
+
+    const bounds = getBounds()
+
+    power.position.x = (Math.random() * 2 - 1) * bounds.x
+    power.position.y = (Math.random() * 2 - 1) * bounds.y
+    power.position.z = -40
+
+    power.type = Math.random() < 0.5 ? "shield" : "slow"
+
+    scene.add(power)
+    powerUps.push(power)
+}
+
+function updatePowerUps() {
+    for (let i = powerUps.length - 1; i >= 0; i--) {
+        const p = powerUps[i]
+
+        p.position.z += speed
+        p.rotation.x += 0.02
+        p.rotation.y += 0.02
+
+        if (checkCollision(player, p)) {
+
+            if (p.type === "shield") {
+                shieldActive = true
+                shieldTime = 5 // sekund
+            }
+
+            if (p.type === "slow") {
+                slowMotionActive = true
+                slowMotionTime = 5
+            }
+
+            scene.remove(p)
+            powerUps.splice(i, 1)
+        }
+
+        if (p.position.z > 5) {
+            scene.remove(p)
+            powerUps.splice(i, 1)
+        }
+    }
+}
+
+function updateBuffs() {
+    if (shieldActive) {
+        shieldTime -= 0.016
+        if (shieldTime <= 0) shieldActive = false
+    }
+
+    if (slowMotionActive) {
+        slowMotionTime -= 0.016
+        if (slowMotionTime <= 0) slowMotionActive = false
+    }
+}
 
 function createStars() {
     const starsGeometry = new THREE.BufferGeometry()
@@ -236,9 +304,17 @@ function updateAsteroid() {
         a.rotation.y += 0.01
 
         if (checkCollision(player, a)) {
-            createExplosion(player.position)
-            gameOver = true
-            gameOverUI.style.display = "block"
+    if (!shieldActive) {
+        createExplosion(player.position)
+        gameOver = true
+        gameOverUI.style.display = "block"
+    } else {
+        createExplosion(a.position)
+        scene.remove(a)
+        asteroids.splice(i, 1)
+        score += 2
+    }
+}
         }
         if (!a.nearMissed && checkNearMiss(player, a)) {
             score += 3
@@ -272,7 +348,13 @@ function updateParticles() {
 }
 
 function updateDifficulty() {
-    speed = 0.05 + score * 0.002
+    let baseSpeed = 0.05 + score * 0.002
+
+    if (slowMotionActive) {
+        speed = baseSpeed * 0.3
+    } else {
+        speed = baseSpeed
+    }
 }
 
 function updateFPS() {
@@ -310,17 +392,35 @@ function animate() {
         if (Math.random() < 0.03) {
             spawnAsteroid()
         }
+        
+        if (Math.random() < 0.005) {
+    spawnPowerUp()
+}
+
+if (shieldActive && player) {
+    player.children.forEach(c => {
+        if (c.material) c.material.emissive = new THREE.Color(0x00ffff)
+    })
+} else if (player) {
+    player.children.forEach(c => {
+        if (c.material) c.material.emissive = new THREE.Color(0x000000)
+    })
+}
 
         updateAsteroid()
         updateDifficulty()
         updateParticles()
+        updatePowerUps()
+updateBuffs()
     }
 
     if (stars) updateStars()
 
     applyScreenShake()
+    if (!audio.isPlaying) {
     audio.loop = true
     audio.play()
+}
 
     updateFPS()
 
