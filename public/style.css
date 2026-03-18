@@ -4,6 +4,11 @@ body {
     background: black;
 }
 
+h1{
+    color: white;
+    text-align: center;
+}
+
 #score {
     position: absolute;
     top: 20px;
@@ -27,7 +32,5 @@ body {
 
 #fps {
     position: absolute;
-    top: 10px;
-    left: 10px;
     color: white;
 }
