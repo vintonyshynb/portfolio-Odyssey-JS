@@ -1,10 +1,17 @@
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 let scene, camera, renderer
 let player
 let shakeTime = 0
 let stars
+let radius = 0.3
+let angle = 0.1
+
+let playerRotateZ = 0
+let playerRotateX = 0
+let playerRotateZ1 = 0
+let playerRotateX1 = 0
 
 let asteroids = []
 let particles = []
@@ -13,7 +20,7 @@ let score = 0
 let gameOver = false
 let speed = 0.05
 
-const audio = new Audio('explosion.mp3')
+const audio = new Audio('starwars.mp3')
 const keys = {}
 const scoreUI = document.getElementById('score')
 const gameOverUI = document.getElementById('gameOver')
@@ -38,15 +45,15 @@ const pointLight = new THREE.PointLight(0xffffff, 1)
 pointLight.position.set(5, 5, 5)
 scene.add(pointLight)
 
-const loader = new GLTFLoader();
+const loader = new GLTFLoader()
 
 loader.load('/spaceship.glb', (gltf) => {
-    player = gltf.scene;
-    scene.add(player);
-    player.scale.set(0.2, 0.2, 0.2);
-    player.position.set(0, 0, 0);
+    player = gltf.scene
+    scene.add(player)
+    player.scale.set(0.2, 0.2, 0.2)
+    player.position.set(0, 0, 0)
     player.rotation.set(0, 600, 0)
-});
+})
 
 function createStars() {
     const starsGeometry = new THREE.BufferGeometry()
@@ -61,7 +68,7 @@ function createStars() {
 
     starsGeometry.setAttribute(
         'position',
-        new THREE.Float32BufferAttribute(positions, 3)
+        new THREE.Float32BufferAttribute(positions, 4)
     )
 
     const starsMaterial = new THREE.PointsMaterial({
@@ -100,25 +107,47 @@ function getBounds() {
     }
 }
 
+
 function movePlayer() {
     const moveSpeed = 0.1
 
-    if (keys["ArrowLeft"] || keys["a"])
+    if (keys["ArrowLeft"] || keys["a"]) {
         player.position.x -= moveSpeed
-
-    if (keys["ArrowRight"] || keys["d"])
+        playerRotateZ1 = -radius
+    }
+    else {
+        playerRotateZ1 = 0
+    }
+    if (keys["ArrowRight"] || keys["d"]) {
         player.position.x += moveSpeed
-
-    if (keys["ArrowUp"] || keys["w"])
+        playerRotateZ = radius
+    }
+    else {
+        playerRotateZ = 0
+    }
+    if (keys["ArrowUp"] || keys["w"]) {
         player.position.y += moveSpeed
-
-    if (keys["ArrowDown"] || keys["s"])
+        playerRotateX1 = radius
+    }
+    else {
+        playerRotateX1 = 0
+    }
+    if (keys["ArrowDown"] || keys["s"]) {
         player.position.y -= moveSpeed
-
+        playerRotateX = -radius
+    }
+    else {
+        playerRotateX = 0
+    }
     const bounds = getBounds()
 
     player.position.x = Math.max(-bounds.x, Math.min(bounds.x, player.position.x))
     player.position.y = Math.max(-bounds.y, Math.min(bounds.y, player.position.y))
+
+    player.rotation.z += (playerRotateZ - player.rotation.z) * angle
+    player.rotation.x += (playerRotateX - player.rotation.x) * angle
+    player.rotation.z += (playerRotateZ1 - player.rotation.z) * angle
+    player.rotation.x += (playerRotateX1 - player.rotation.x) * angle
 }
 
 function spawnAsteroid() {
@@ -127,15 +156,35 @@ function spawnAsteroid() {
     const mat = new THREE.MeshStandardMaterial({ color: 0x888888 })
 
     const asteroid = new THREE.Mesh(geo, mat)
+    asteroid.nearMissed = false
 
     const bounds = getBounds()
 
     asteroid.position.x = (Math.random() * 2 - 1) * bounds.x
     asteroid.position.y = (Math.random() * 2 - 1) * bounds.y
-    asteroid.position.z = -20
+    if (score >= 100 && score <= 200) {
+        asteroid.position.z = -30
+    } 
+    else if (score >= 200 && score <= 300) {
+        asteroid.position.z = -20
+    }
+    else if (score >= 300 && score <= 400) {
+        asteroid.position.z = -10
+    }
+    else if (score > 400){
+        asteroid.position.z = -5
+    }
+    else{
+        asteroid.position.z = -40
+    }
 
     scene.add(asteroid)
     asteroids.push(asteroid)
+}
+
+function checkNearMiss(player, asteroid) {
+    const distance = player.position.distanceTo(asteroid.position)
+    return distance < 2 && distance > 1
 }
 
 function createExplosion(position) {
@@ -169,11 +218,13 @@ function applyScreenShake() {
     }
 }
 
-function checkCollision(a, b) {
-    const box1 = new THREE.Box3().setFromObject(a)
-    const box2 = new THREE.Box3().setFromObject(b)
+function checkCollision(player, asteroid) {
+    const distance = player.position.distanceTo(asteroid.position)
 
-    return box1.intersectsBox(box2)
+    const playerRadius = 0.5
+    const asteroidRadius = asteroid.geometry.parameters.radius || 0.5
+
+    return distance < (playerRadius + asteroidRadius)
 }
 
 function updateAsteroid() {
@@ -188,6 +239,12 @@ function updateAsteroid() {
             createExplosion(player.position)
             gameOver = true
             gameOverUI.style.display = "block"
+        }
+        if (!a.nearMissed && checkNearMiss(player, a)) {
+            score += 3
+            a.nearMissed = true
+            createExplosion(a.position)
+            scoreUI.innerText = "Score: " + score
         }
 
         if (a.position.z > 5) {
@@ -250,7 +307,7 @@ function animate() {
     if (!gameOver) {
         movePlayer()
 
-        if (Math.random() < 0.02) {
+        if (Math.random() < 0.03) {
             spawnAsteroid()
         }
 
@@ -258,10 +315,11 @@ function animate() {
         updateDifficulty()
         updateParticles()
     }
+
     if (stars) updateStars()
 
     applyScreenShake()
-
+    audio.loop = true
     audio.play()
 
     updateFPS()
@@ -289,6 +347,5 @@ function restartGame() {
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight
     camera.updateProjectionMatrix()
-
     renderer.setSize(window.innerWidth, window.innerHeight)
 })
