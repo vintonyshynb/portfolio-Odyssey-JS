@@ -18,6 +18,15 @@ h1{
     font-size: 24px;
 }
 
+#bestScore{
+    position: absolute;
+    top: 20px;
+    left: 200px;
+    color: white;
+    font-family: Arial;
+    font-size: 24px;
+}
+
 #gameOver {
     position: absolute;
     top: 50%;
@@ -32,5 +41,7 @@ h1{
 
 #fps {
     position: absolute;
+    top: 20px;
+    left: 90%;
     color: white;
 }
