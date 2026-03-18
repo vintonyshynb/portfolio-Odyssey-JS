@@ -12,7 +12,6 @@ let playerRotateZ = 0
 let playerRotateX = 0
 let playerRotateZ1 = 0
 let playerRotateX1 = 0
-
 let asteroids = []
 let particles = []
 
@@ -22,6 +21,8 @@ let speed = 0.05
 
 const audio = new Audio('starwars.mp3')
 const keys = {}
+let bestScoreValue = 0
+const bestScore = document.getElementById('bestScore')
 const scoreUI = document.getElementById('score')
 const gameOverUI = document.getElementById('gameOver')
 const fpsUI = document.getElementById('fps')
@@ -164,17 +165,17 @@ function spawnAsteroid() {
     asteroid.position.y = (Math.random() * 2 - 1) * bounds.y
     if (score >= 100 && score <= 200) {
         asteroid.position.z = -30
-    } 
+    }
     else if (score >= 200 && score <= 300) {
         asteroid.position.z = -20
     }
     else if (score >= 300 && score <= 400) {
         asteroid.position.z = -10
     }
-    else if (score > 400){
+    else if (score > 400) {
         asteroid.position.z = -5
     }
-    else{
+    else {
         asteroid.position.z = -40
     }
 
@@ -245,6 +246,10 @@ function updateAsteroid() {
             a.nearMissed = true
             createExplosion(a.position)
             scoreUI.innerText = "Score: " + score
+            if (score > bestScoreValue) {
+                bestScoreValue = score
+                bestScore.innerText = "Best Score: " + bestScoreValue
+            }
         }
 
         if (a.position.z > 5) {
@@ -253,6 +258,10 @@ function updateAsteroid() {
 
             score++
             scoreUI.innerText = "Score: " + score
+            if (score > bestScoreValue) {
+                bestScoreValue = score
+                bestScore.innerText = "Best Score: " + bestScoreValue
+            }
         }
     }
 }
@@ -333,6 +342,10 @@ function restartGame() {
     score = 0
 
     scoreUI.innerText = "Score: 0"
+    if (score > bestScoreValue) {
+        bestScoreValue = score
+        bestScore.innerText = "Best Score: " + bestScoreValue
+    }
     gameOverUI.style.display = "none"
 
     asteroids.forEach(a => scene.remove(a))
