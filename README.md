@@ -60,14 +60,6 @@ Make sure these files are in the root directory:
 * `spaceship.glb`
 * `explosion.mp3`
 
-## 🚀 Future Improvements
-
-* Add shooting system
-* Enemy AI
-* Power-ups
-* Sound effects toggle
-* Mobile controls
-
 ## 👤 Author
 
 Vintonyshyn Bogdan
