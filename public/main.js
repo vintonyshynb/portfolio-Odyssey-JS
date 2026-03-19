@@ -243,18 +243,28 @@ function activatePowerDown(type) {
         moveSpeedMultiplier = -1
         effectTimers.invert = 5
     }
+
     updateEffectsHUD()
+
     const interval = setInterval(() => {
         effectTimers[type] -= 0.1
+
         if (effectTimers[type] <= 0) {
-            activeEffects[type] = false
+
+            if (type === "speed") speedMultiplier = 1
+            if (type === "invert") moveSpeedMultiplier = 1
+            if (type === "shake") shakeTime = 0
+
             effectTimers[type] = 0
             clearInterval(interval)
+
             const index = effectIntervals.indexOf(interval)
             if (index > -1) effectIntervals.splice(index, 1)
         }
+
         updateEffectsHUD()
     }, 100)
+
     effectIntervals.push(interval)
 }
 
@@ -474,6 +484,8 @@ function restartGame() {
     particles.forEach(p => scene.remove(p))
     particles = []
 
+    powerUps.forEach(p => scene.remove(p))
+    powerUps = []
     powerUps.forEach(p => scene.remove(p))
     powerUps = []
 
