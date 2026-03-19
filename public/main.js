@@ -13,6 +13,10 @@ let obstacles = []
 let asteroids = []
 let particles = []
 
+let trail
+let trailPositions = []
+const trailLength = 50
+
 let gameStarted = false
 let paused = false
 let gameOver = false
@@ -99,6 +103,44 @@ function createStars() {
     scene.add(stars)
 }
 createStars()
+
+function createTrail() {
+    const geometry = new THREE.BufferGeometry()
+    const positions = new Float32Array(trailLength * 3)
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+    const material = new THREE.LineBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.6
+    })
+
+    trail = new THREE.Line(geometry, material)
+    scene.add(trail)
+
+    for (let i = 0; i < trailLength; i++) {
+        trailPositions.push(new THREE.Vector3(0, 0, 0))
+    }
+}
+createTrail()
+
+function updateTrail() {
+    if (!player) return
+
+    trailPositions.pop()
+    trailPositions.unshift(player.position.clone())
+
+    const positions = trail.geometry.attributes.position.array
+
+    for (let i = 0; i < trailLength; i++) {
+        positions[i * 3] = trailPositions[i].x
+        positions[i * 3 + 1] = trailPositions[i].y
+        positions[i * 3 + 2] = trailPositions[i].z
+    }
+
+    trail.geometry.attributes.position.needsUpdate = true
+}
 
 document.addEventListener('keydown', (e) => {
     keys[e.key] = true
@@ -468,6 +510,7 @@ function animate() {
         audio.play()
     }
     updateFPS()
+    updateTrail()
     renderer.render(scene, camera)
 }
 animate()
