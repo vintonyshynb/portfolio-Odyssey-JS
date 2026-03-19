@@ -11,6 +11,7 @@ let angle = 0.1
 let powerUps = []
 let obstacles = []
 let asteroids = []
+let asteroids2 = []
 let particles = []
 
 let trail
@@ -36,7 +37,7 @@ let effectTimers = {
 }
 let effectIntervals = []
 
-let moveSpeedMultiplier = 0.5
+let moveSpeedMultiplier = 0.8
 let speedMultiplier = 0.5
 let speed = 0.05
 let score = 0
@@ -62,7 +63,7 @@ renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.3)
 scene.add(ambientLight)
 
 const pointLight = new THREE.PointLight(0xffffff, 1)
@@ -95,7 +96,7 @@ function createStars() {
         positions.push((Math.random() - 0.5) * 900)
         positions.push((Math.random() - 0.5) * 900)
     }
-    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 4))
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
     const starsMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
         size: 0.5,
@@ -239,7 +240,7 @@ function movePlayer() {
 }
 
 function spawnPowerUp() {
-    const geo = new THREE.TorusGeometry(0.1, 0.2)
+    const geo = new THREE.TorusGeometry(0.5, 0.5)
     const mat = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
     const p = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
@@ -286,7 +287,7 @@ function activatePowerUp(type) {
 }
 
 function spawnObstacle() {
-    const geo = new THREE.TorusGeometry(0.1, 0.2)
+    const geo = new THREE.TorusGeometry(0.5, 0.5)
     const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 })
     const o = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
@@ -336,7 +337,7 @@ function activatePowerDown(type) {
         if (effectTimers[type] <= 0) {
 
             if (type === "speed") speedMultiplier = 0.5
-            if (type === "invert") moveSpeedMultiplier = 0.5
+            if (type === "invert") moveSpeedMultiplier = 0.8
             if (type === "shake") shakeTime = 0
 
             effectTimers[type] = 0
@@ -362,7 +363,7 @@ function updateEffectsHUD() {
 }
 
 function spawnAsteroid() {
-    const size = Math.random() * 0.5 + 0.3
+    const size = Math.random() * 0.5 + 0.4
     const geo = new THREE.DodecahedronGeometry(size)
     const mat = new THREE.MeshStandardMaterial({ color: 0x888888 })
     const asteroid = new THREE.Mesh(geo, mat)
@@ -377,6 +378,24 @@ function spawnAsteroid() {
     else asteroid.position.z = -40
     scene.add(asteroid)
     asteroids.push(asteroid)
+}
+
+function spawnAsteroid2() {
+    const size = Math.random() * 0.5 + 0.4
+    const geo = new THREE.DodecahedronGeometry(size)
+    const mat = new THREE.MeshStandardMaterial({ color: 0x575757 })
+    const asteroid2 = new THREE.Mesh(geo, mat)
+    asteroid2.nearMissed = false
+    const bounds = getBounds()
+    asteroid2.position.x = (Math.random() * 2 - 1) * bounds.x
+    asteroid2.position.y = (Math.random() * 2 - 1) * bounds.y
+    if (score >= 100 && score <= 200) asteroid2.position.z = -30
+    else if (score >= 200 && score <= 300) asteroid2.position.z = -25
+    else if (score >= 300 && score <= 400) asteroid2.position.z = -20
+    else if (score > 400) asteroid2.position.z = -15
+    else asteroid2.position.z = -40
+    scene.add(asteroid2)
+    asteroids2.push(asteroid2)
 }
 
 function checkNearMiss(player, asteroid) {
@@ -423,6 +442,8 @@ function updateAsteroid() {
     for (let i = asteroids.length - 1; i >= 0; i--) {
         const a = asteroids[i]
         a.position.z += speed
+        a.rotation.x += 0.001
+        a.rotation.y += 0.002
 
         if (checkCollision(player, a)) {
             if (activeEffects.shield) {
@@ -460,36 +481,63 @@ function updateAsteroid() {
     }
 }
 
+function updateAsteroid2() {
+    for (let i = asteroids2.length - 1; i >= 0; i--) {
+        const a2 = asteroids2[i]
+        a2.position.z += speed * 2
+        a2.rotation.x += 0.5
+        a2.rotation.y += 0.3
+
+        if (checkCollision(player, a2)) {
+            if (activeEffects.shield) {
+                scene.remove(a2)
+                asteroids2.splice(i, 1)
+                continue
+            }
+            createExplosion(player.position)
+            handleGameOver()
+        }
+
+        if (!a2.nearMissed && checkNearMiss(player, a2)) {
+            score += 3
+            a2.nearMissed = true
+            createExplosion(a2.position)
+            scoreUI.innerText = "Score: " + score
+            if (score > bestScoreValue) {
+                bestScoreValue = score
+                bestScore.innerText = "Best Score: " + bestScoreValue
+                localStorage.setItem("bestScore", bestScoreValue)
+            }
+        }
+
+        if (a2.position.z > 5) {
+            scene.remove(a2)
+            asteroids2.splice(i, 1)
+            score += activeEffects.double ? 2 : 1
+            scoreUI.innerText = "Score: " + score
+            if (score > bestScoreValue) {
+                bestScoreValue = score
+                bestScore.innerText = "Best Score: " + bestScoreValue
+                localStorage.setItem("bestScore", bestScoreValue)
+            }
+        }
+    }
+}
+
 function handleGameOver() {
     gameOver = true
     gameOverUI.style.display = "block"
-
-    powerUps.forEach(p => scene.remove(p))
-    powerUps = []
-
-    obstacles.forEach(o => scene.remove(o))
-    obstacles = []
-
-    asteroids.forEach(a => scene.remove(a))
-    asteroids = []
-
-    particles.forEach(p => scene.remove(p))
-    particles = []
-
-    effectIntervals.forEach(i => clearInterval(i))
-    effectIntervals = []
 
     for (const key in activeEffects) activeEffects[key] = false
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
 
-    moveSpeedMultiplier = 0.5
+    moveSpeedMultiplier = 0.8
     speedMultiplier = 0.5
     shakeTime = 0
 
     camera.position.set(0, 0, camera.position.z)
     if (player) {
-        player.position.set(0, 0, 0)
         player.rotation.set(0, 600, 0)
     }
 }
@@ -535,9 +583,11 @@ function animate() {
     if (gameStarted && !paused && !gameOver && player) {
         movePlayer()
         if (Math.random() < 0.03) spawnAsteroid()
-        if (Math.random() < 0.01) spawnPowerUp()
-        if (Math.random() < 0.01) spawnObstacle()
+        if (Math.random() < 0.005) spawnAsteroid2()
+        if (Math.random() < 0.0009) spawnPowerUp()
+        if (Math.random() < 0.0009) spawnObstacle()
         updateAsteroid()
+        updateAsteroid2()
         updateDifficulty()
         updateParticles()
         updatePowerUps()
@@ -566,11 +616,12 @@ function restartGame() {
     asteroids.forEach(a => scene.remove(a))
     asteroids = []
 
+    asteroids2.forEach(a2 => scene.remove(a2))
+    asteroids2 = []
+
     particles.forEach(p => scene.remove(p))
     particles = []
 
-    powerUps.forEach(p => scene.remove(p))
-    powerUps = []
     powerUps.forEach(p => scene.remove(p))
     powerUps = []
 
@@ -584,7 +635,7 @@ function restartGame() {
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
 
-    moveSpeedMultiplier = 0.5
+    moveSpeedMultiplier = 0.8
     speedMultiplier = 0.5
     shakeTime = 0
     camera.position.set(0, 0, camera.position.z)
