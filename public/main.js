@@ -147,11 +147,11 @@ function updateTrail() {
 function createEngineEffect() {
     if (!player) return
 
-    const geo = new THREE.SphereGeometry(0.05)
+    const geo = new THREE.SphereGeometry(0.1)
     const mat = new THREE.MeshBasicMaterial({
         color: 0x00aaff,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.2
     })
 
     const particle = new THREE.Mesh(geo, mat)
@@ -239,7 +239,7 @@ function movePlayer() {
 }
 
 function spawnPowerUp() {
-    const geo = new THREE.BoxGeometry(0.5, 0.5, 0.5)
+    const geo = new THREE.TorusGeometry(0.1, 0.2)
     const mat = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
     const p = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
@@ -286,7 +286,7 @@ function activatePowerUp(type) {
 }
 
 function spawnObstacle() {
-    const geo = new THREE.TorusGeometry(0.5, 0.2)
+    const geo = new THREE.TorusGeometry(0.1, 0.2)
     const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 })
     const o = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
@@ -320,8 +320,8 @@ function activatePowerDown(type) {
         effectTimers.speed = 5
     }
     if (type === "shake") {
-        shakeTime = 1
-        effectTimers.shake = 1
+        shakeTime = 3
+        effectTimers.shake = 3
     }
     if (type === "invert") {
         moveSpeedMultiplier = -1
@@ -371,9 +371,9 @@ function spawnAsteroid() {
     asteroid.position.x = (Math.random() * 2 - 1) * bounds.x
     asteroid.position.y = (Math.random() * 2 - 1) * bounds.y
     if (score >= 100 && score <= 200) asteroid.position.z = -30
-    else if (score >= 200 && score <= 300) asteroid.position.z = -20
-    else if (score >= 300 && score <= 400) asteroid.position.z = -10
-    else if (score > 400) asteroid.position.z = -5
+    else if (score >= 200 && score <= 300) asteroid.position.z = -25
+    else if (score >= 300 && score <= 400) asteroid.position.z = -20
+    else if (score > 400) asteroid.position.z = -15
     else asteroid.position.z = -40
     scene.add(asteroid)
     asteroids.push(asteroid)
@@ -423,8 +423,6 @@ function updateAsteroid() {
     for (let i = asteroids.length - 1; i >= 0; i--) {
         const a = asteroids[i]
         a.position.z += speed
-        a.rotation.x += 0.01
-        a.rotation.y += 0.01
 
         if (checkCollision(player, a)) {
             if (activeEffects.shield) {
