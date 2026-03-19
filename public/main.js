@@ -36,6 +36,16 @@ let effectTimers = {
     double: 0
 }
 let effectIntervals = []
+const textureLoader = new THREE.TextureLoader()
+
+const icons = {
+    shield: textureLoader.load('shield.png'),
+    slow: textureLoader.load('slow.png'),
+    double: textureLoader.load('double.png'),
+    invert: textureLoader.load('invert.png'),
+    speed: textureLoader.load('speed.png'),
+    shake: textureLoader.load('shake.png')
+}
 
 let moveSpeedMultiplier = 0.8
 let speedMultiplier = 0.5
@@ -248,6 +258,13 @@ function spawnPowerUp() {
     p.position.y = (Math.random() * 2 - 1) * bounds.y
     p.position.z = -30
     p.type = ["shield", "slow", "double"][Math.floor(Math.random() * 3)]
+    const spriteMat = new THREE.SpriteMaterial({ map: icons[p.type] })
+    const sprite = new THREE.Sprite(spriteMat)
+    sprite.material.depthTest = false
+    sprite.scale.set(1, 1, 1)
+    sprite.position.set(0, 1, 0)
+
+    p.add(sprite)
     scene.add(p)
     powerUps.push(p)
 }
@@ -265,6 +282,7 @@ function updatePowerUps() {
             scene.remove(p)
             powerUps.splice(i, 1)
         }
+        updateOpacity(p)
     }
 }
 
@@ -295,6 +313,13 @@ function spawnObstacle() {
     o.position.y = (Math.random() * 2 - 1) * bounds.y
     o.position.z = -30
     o.type = ["invert", "speed", "shake"][Math.floor(Math.random() * 3)]
+    const spriteMat = new THREE.SpriteMaterial({ map: icons[o.type] })
+    const sprite = new THREE.Sprite(spriteMat)
+    sprite.material.depthTest = false
+    sprite.scale.set(1, 1, 1)
+    sprite.position.set(0, 1, 0)
+
+    o.add(sprite)
     scene.add(o)
     obstacles.push(o)
 }
@@ -312,6 +337,7 @@ function updateObstacles() {
             scene.remove(o)
             obstacles.splice(i, 1)
         }
+        updateOpacity(o)
     }
 }
 
@@ -396,6 +422,8 @@ function spawnAsteroid2() {
     else asteroid2.position.z = -40
     scene.add(asteroid2)
     asteroids2.push(asteroid2)
+    asteroid2.velocity = new THREE.Vector3(0, 0, speed * 2)
+    asteroid2.homingTime = 1.5
 }
 
 function checkNearMiss(player, asteroid) {
@@ -438,6 +466,20 @@ function checkCollision(player, asteroid) {
     return distance < (playerRadius + asteroidRadius)
 }
 
+function updateOpacity(object) {
+    const distance = camera.position.z - object.position.z
+
+    let opacity = 1
+
+    if (distance < 20) {
+        opacity = distance / 10
+        opacity = Math.max(0.2, opacity)
+    }
+
+    object.material.transparent = true
+    object.material.opacity = opacity
+}
+
 function updateAsteroid() {
     for (let i = asteroids.length - 1; i >= 0; i--) {
         const a = asteroids[i]
@@ -478,13 +520,23 @@ function updateAsteroid() {
                 localStorage.setItem("bestScore", bestScoreValue)
             }
         }
+        updateOpacity(a)
     }
 }
 
 function updateAsteroid2() {
     for (let i = asteroids2.length - 1; i >= 0; i--) {
         const a2 = asteroids2[i]
-        a2.position.z += speed * 2
+        if (a2.homingTime > 0) {
+            const direction = new THREE.Vector3()
+            direction.subVectors(player.position, a2.position).normalize()
+
+            a2.velocity.lerp(direction.multiplyScalar(speed * 2), 0.05)
+
+            a2.homingTime -= 0.016
+        }
+
+        a2.position.add(a2.velocity)
         a2.rotation.x += 0.5
         a2.rotation.y += 0.3
 
@@ -521,6 +573,7 @@ function updateAsteroid2() {
                 localStorage.setItem("bestScore", bestScoreValue)
             }
         }
+        updateOpacity(a2)
     }
 }
 
