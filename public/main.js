@@ -30,8 +30,8 @@ let effectTimers = {
 }
 let effectIntervals = []
 
-let moveSpeedMultiplier = 1
-let speedMultiplier = 1
+let moveSpeedMultiplier = 0.5
+let speedMultiplier = 0.5
 let speed = 0.05
 let score = 0
 
@@ -232,7 +232,7 @@ function updateObstacles() {
 
 function activatePowerDown(type) {
     if (type === "speed") {
-        speedMultiplier = 2
+        speedMultiplier = 1.5
         effectTimers.speed = 5
     }
     if (type === "shake") {
@@ -251,8 +251,8 @@ function activatePowerDown(type) {
 
         if (effectTimers[type] <= 0) {
 
-            if (type === "speed") speedMultiplier = 1
-            if (type === "invert") moveSpeedMultiplier = 1
+            if (type === "speed") speedMultiplier = 0.5
+            if (type === "invert") moveSpeedMultiplier = 0.5
             if (type === "shake") shakeTime = 0
 
             effectTimers[type] = 0
@@ -401,8 +401,8 @@ function handleGameOver() {
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
 
-    moveSpeedMultiplier = 1
-    speedMultiplier = 1
+    moveSpeedMultiplier = 0.5
+    speedMultiplier = 0.5
     shakeTime = 0
 
     camera.position.set(0, 0, camera.position.z)
@@ -499,8 +499,8 @@ function restartGame() {
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
 
-    moveSpeedMultiplier = 1
-    speedMultiplier = 1
+    moveSpeedMultiplier = 0.5
+    speedMultiplier = 0.5
     shakeTime = 0
     camera.position.set(0, 0, camera.position.z)
 
