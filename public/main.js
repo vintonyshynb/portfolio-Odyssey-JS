@@ -17,6 +17,8 @@ let trail
 let trailPositions = []
 const trailLength = 50
 
+let engineParticles = []
+
 let gameStarted = false
 let paused = false
 let gameOver = false
@@ -140,6 +142,46 @@ function updateTrail() {
     }
 
     trail.geometry.attributes.position.needsUpdate = true
+}
+
+function createEngineEffect() {
+    if (!player) return
+
+    const geo = new THREE.SphereGeometry(0.05)
+    const mat = new THREE.MeshBasicMaterial({
+        color: 0x00aaff,
+        transparent: true,
+        opacity: 0.8
+    })
+
+    const particle = new THREE.Mesh(geo, mat)
+
+    particle.position.copy(player.position)
+    particle.position.z += 0.3
+
+    particle.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.02,
+        0.2 + Math.random() * 0.1
+    )
+
+    scene.add(particle)
+    engineParticles.push(particle)
+}
+
+function updateEngineEffect() {
+    for (let i = engineParticles.length - 1; i >= 0; i--) {
+        const p = engineParticles[i]
+
+        p.position.add(p.velocity)
+        p.scale.multiplyScalar(0.95)
+        p.material.opacity *= 0.95
+
+        if (p.material.opacity < 0.05) {
+            scene.remove(p)
+            engineParticles.splice(i, 1)
+        }
+    }
 }
 
 document.addEventListener('keydown', (e) => {
@@ -511,6 +553,8 @@ function animate() {
     }
     updateFPS()
     updateTrail()
+    createEngineEffect()
+    updateEngineEffect()
     renderer.render(scene, camera)
 }
 animate()
