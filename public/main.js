@@ -7,6 +7,7 @@ let shakeTime = 0
 let stars
 let radius = 0.3
 let angle = 0.1
+let Sun
 
 let powerUps = []
 let obstacles = []
@@ -73,11 +74,11 @@ renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.3)
+const ambientLight = new THREE.AmbientLight(0xffffff, 2)
 scene.add(ambientLight)
 
-const pointLight = new THREE.PointLight(0xffffff, 1)
-pointLight.position.set(5, 5, 5)
+const pointLight = new THREE.PointLight(0xffffff, 10000)
+pointLight.position.set(-10, 15, -30)
 scene.add(pointLight)
 
 const loader = new GLTFLoader()
@@ -96,6 +97,19 @@ loader.load('/spaceship.glb', (gltf) => {
     player.position.set(0, 0, 0)
     player.rotation.set(0, 600, 0)
 })
+
+function createSun() {
+    const geometry = new THREE.SphereGeometry(180, 20, 20)
+    const material = new THREE.MeshBasicMaterial({
+        color: 0xfffffa
+    })
+
+    Sun = new THREE.Mesh(geometry, material)
+
+    Sun.position.set(-1400, 700, -900)
+    scene.add(Sun)
+}
+createSun()
 
 function createStars() {
     const starsGeometry = new THREE.BufferGeometry()
@@ -266,8 +280,8 @@ function spawnPowerUp() {
     const spriteMat = new THREE.SpriteMaterial({ map: icons[p.type] })
     const sprite = new THREE.Sprite(spriteMat)
     sprite.material.depthTest = false
-    sprite.scale.set(1, 1, 1)
-    sprite.position.set(0, 1, 0)
+    sprite.scale.set(2, 2, 2)
+    sprite.position.set(0, 0, 0)
 
     p.add(sprite)
     scene.add(p)
@@ -321,8 +335,8 @@ function spawnObstacle() {
     const spriteMat = new THREE.SpriteMaterial({ map: icons[o.type] })
     const sprite = new THREE.Sprite(spriteMat)
     sprite.material.depthTest = false
-    sprite.scale.set(1, 1, 1)
-    sprite.position.set(0, 1, 0)
+    sprite.scale.set(2, 2, 2)
+    sprite.position.set(0, 0, 0)
 
     o.add(sprite)
     scene.add(o)
@@ -502,7 +516,7 @@ function updateAsteroid() {
             handleGameOver()
         }
 
-                if (!a.nearMissed && checkNearMiss(player, a)) {
+        if (!a.nearMissed && checkNearMiss(player, a)) {
             score += 3
             a.nearMissed = true
             createExplosion(a.position)
