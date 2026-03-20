@@ -15,10 +15,6 @@ let asteroids = []
 let asteroids2 = []
 let particles = []
 
-let trail
-let trailPositions = []
-const trailLength = 50
-
 let engineParticles = []
 
 let gameStarted = false
@@ -131,44 +127,6 @@ function createStars() {
 }
 createStars()
 
-function createTrail() {
-    const geometry = new THREE.BufferGeometry()
-    const positions = new Float32Array(trailLength * 3)
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-    const material = new THREE.LineBasicMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: 0.6
-    })
-
-    trail = new THREE.Line(geometry, material)
-    scene.add(trail)
-
-    for (let i = 0; i < trailLength; i++) {
-        trailPositions.push(new THREE.Vector3(0, 0, 0))
-    }
-}
-createTrail()
-
-function updateTrail() {
-    if (!player) return
-
-    trailPositions.pop()
-    trailPositions.unshift(player.position.clone())
-
-    const positions = trail.geometry.attributes.position.array
-
-    for (let i = 0; i < trailLength; i++) {
-        positions[i * 3] = trailPositions[i].x
-        positions[i * 3 + 1] = trailPositions[i].y
-        positions[i * 3 + 2] = trailPositions[i].z
-    }
-
-    trail.geometry.attributes.position.needsUpdate = true
-}
-
 function createEngineEffect() {
     if (!player) return
 
@@ -269,8 +227,11 @@ function movePlayer() {
 }
 
 function spawnPowerUp() {
-    const geo = new THREE.TorusGeometry(0.5, 0.5)
-    const mat = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+    const geo = new THREE.TorusGeometry(0, 0)
+    const mat = new THREE.MeshStandardMaterial({ 
+        transparent: true,
+        opacity: 0
+     })
     const p = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
     p.position.x = (Math.random() * 2 - 1) * bounds.x
@@ -279,9 +240,9 @@ function spawnPowerUp() {
     p.type = ["shield", "slow", "double"][Math.floor(Math.random() * 3)]
     const spriteMat = new THREE.SpriteMaterial({ map: icons[p.type] })
     const sprite = new THREE.Sprite(spriteMat)
-    sprite.material.depthTest = false
+    sprite.material.depthTest = true
     sprite.scale.set(2, 2, 2)
-    sprite.position.set(0, 0, 0)
+    sprite.position.set(0, 0, 1.1)
 
     p.add(sprite)
     scene.add(p)
@@ -324,8 +285,11 @@ function activatePowerUp(type) {
 }
 
 function spawnObstacle() {
-    const geo = new THREE.TorusGeometry(0.5, 0.5)
-    const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 })
+    const geo = new THREE.TorusGeometry(0, 0)
+    const mat = new THREE.MeshStandardMaterial({ 
+        transparent: true,
+        opacity: 0
+     })
     const o = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
     o.position.x = (Math.random() * 2 - 1) * bounds.x
@@ -334,9 +298,9 @@ function spawnObstacle() {
     o.type = ["invert", "speed", "shake"][Math.floor(Math.random() * 3)]
     const spriteMat = new THREE.SpriteMaterial({ map: icons[o.type] })
     const sprite = new THREE.Sprite(spriteMat)
-    sprite.material.depthTest = false
+    sprite.material.depthTest = true
     sprite.scale.set(2, 2, 2)
-    sprite.position.set(0, 0, 0)
+    sprite.position.set(0, 0, 1.1)
 
     o.add(sprite)
     scene.add(o)
@@ -489,27 +453,6 @@ function checkAsteroidCollisions() {
     for (let i = asteroids.length - 1; i >= 0; i--) {
         for (let j = asteroids2.length - 1; j >= 0; j--) {
             const a1 = asteroids[i]
-            const a2 = asteroids2[j]
-
-            if (checkCollision(a1, a2)) {
-                createExplosion(a1.position)
-
-                scene.remove(a1)
-                scene.remove(a2)
-
-                asteroids.splice(i, 1)
-                asteroids2.splice(j, 1)
-
-                break
-            }
-        }
-    }
-}
-
-function checkAsteroid2Collisions() {
-    for (let i = asteroids2.length - 1; i >= 0; i--) {
-        for (let j = asteroids2.length - 1; j >= 0; j--) {
-            const a1 = asteroids2[i]
             const a2 = asteroids2[j]
 
             if (checkCollision(a1, a2)) {
@@ -703,7 +646,6 @@ function animate() {
         updateAsteroid()
         updateAsteroid2()
         checkAsteroidCollisions()
-        checkAsteroid2Collisions()
         updateDifficulty()
         updateParticles()
         updatePowerUps()
@@ -716,7 +658,6 @@ function animate() {
         audio.play()
     }
     updateFPS()
-    updateTrail()
     createEngineEffect()
     updateEngineEffect()
     renderer.render(scene, camera)
