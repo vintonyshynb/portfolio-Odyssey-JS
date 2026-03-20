@@ -485,6 +485,48 @@ function checkCollision(player, asteroid) {
     return distance < (playerRadius + asteroidRadius)
 }
 
+function checkAsteroidCollisions() {
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+        for (let j = asteroids2.length - 1; j >= 0; j--) {
+            const a1 = asteroids[i]
+            const a2 = asteroids2[j]
+
+            if (checkCollision(a1, a2)) {
+                createExplosion(a1.position)
+
+                scene.remove(a1)
+                scene.remove(a2)
+
+                asteroids.splice(i, 1)
+                asteroids2.splice(j, 1)
+
+                break
+            }
+        }
+    }
+}
+
+function checkAsteroid2Collisions() {
+    for (let i = asteroids2.length - 1; i >= 0; i--) {
+        for (let j = asteroids2.length - 1; j >= 0; j--) {
+            const a1 = asteroids2[i]
+            const a2 = asteroids2[j]
+
+            if (checkCollision(a1, a2)) {
+                createExplosion(a1.position)
+
+                scene.remove(a1)
+                scene.remove(a2)
+
+                asteroids.splice(i, 1)
+                asteroids2.splice(j, 1)
+
+                break
+            }
+        }
+    }
+}
+
 function updateOpacity(object) {
     const distance = camera.position.z - object.position.z
 
@@ -660,6 +702,8 @@ function animate() {
         if (Math.random() < 0.0009) spawnObstacle()
         updateAsteroid()
         updateAsteroid2()
+        checkAsteroidCollisions()
+        checkAsteroid2Collisions()
         updateDifficulty()
         updateParticles()
         updatePowerUps()
