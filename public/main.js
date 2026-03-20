@@ -224,22 +224,27 @@ function getBounds() {
 
 function movePlayer() {
     const playerSpeed = 0.1 * moveSpeedMultiplier * (effectTimers.speed > 0 ? 1.5 : 1)
+
     if (keys["ArrowLeft"] || keys["a"]) {
         player.position.x -= playerSpeed
         playerRotateZ1 = -radius
     } else playerRotateZ1 = 0
+
     if (keys["ArrowRight"] || keys["d"]) {
         player.position.x += playerSpeed
         playerRotateZ = radius
     } else playerRotateZ = 0
+
     if (keys["ArrowUp"] || keys["w"]) {
         player.position.y += playerSpeed
         playerRotateX1 = radius
     } else playerRotateX1 = 0
+
     if (keys["ArrowDown"] || keys["s"]) {
         player.position.y -= playerSpeed
         playerRotateX = -radius
     } else playerRotateX = 0
+
     const bounds = getBounds()
     player.position.x = Math.max(-bounds.x, Math.min(bounds.x, player.position.x))
     player.position.y = Math.max(-bounds.y, Math.min(bounds.y, player.position.y))
@@ -423,7 +428,7 @@ function spawnAsteroid2() {
     scene.add(asteroid2)
     asteroids2.push(asteroid2)
     asteroid2.velocity = new THREE.Vector3(0, 0, speed * 2)
-    asteroid2.homingTime = 1.5
+    asteroid2.homingTime = Math.max(0.3, 1.5 - score * 0.005)
 }
 
 function checkNearMiss(player, asteroid) {
@@ -497,7 +502,7 @@ function updateAsteroid() {
             handleGameOver()
         }
 
-        if (!a.nearMissed && checkNearMiss(player, a)) {
+                if (!a.nearMissed && checkNearMiss(player, a)) {
             score += 3
             a.nearMissed = true
             createExplosion(a.position)
@@ -608,7 +613,7 @@ function updateParticles() {
 }
 
 function updateDifficulty() {
-    speed = (0.05 + score * 0.002) * (activeEffects.slow ? 0.5 : 1) * speedMultiplier
+    speed = (0.05 + (score / 2) * 0.002) * (activeEffects.slow ? 0.5 : 1) * speedMultiplier
 }
 
 function updateFPS() {
@@ -635,7 +640,7 @@ function animate() {
     requestAnimationFrame(animate)
     if (gameStarted && !paused && !gameOver && player) {
         movePlayer()
-        if (Math.random() < 0.03) spawnAsteroid()
+        if (Math.random() < 0.02) spawnAsteroid()
         if (Math.random() < 0.005) spawnAsteroid2()
         if (Math.random() < 0.0009) spawnPowerUp()
         if (Math.random() < 0.0009) spawnObstacle()
