@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 let scene, camera, renderer
 let player
+let player2
 let shakeTime = 0
 let stars
 let radius = 0.3
@@ -53,6 +54,10 @@ let playerRotateZ = 0
 let playerRotateX = 0
 let playerRotateZ1 = 0
 let playerRotateX1 = 0
+let player2RotateZ = 0
+let player2RotateX = 0
+let player2RotateZ1 = 0
+let player2RotateX1 = 0
 
 const audio = new Audio('starwars.mp3')
 audio.volume = 0.05
@@ -90,8 +95,16 @@ loader.load('/spaceship.glb', (gltf) => {
     player = gltf.scene
     scene.add(player)
     player.scale.set(0.2, 0.2, 0.2)
-    player.position.set(0, 0, 0)
+    player.position.set(-1, 0, 0)
     player.rotation.set(0, 600, 0)
+})
+
+loader.load('/spaceship.glb', (gltf) => {
+    player2 = gltf.scene
+    scene.add(player2)
+    player2.scale.set(0.2, 0.2, 0.2)
+    player2.position.set(1, 0, 0)
+    player2.rotation.set(0, 600, 0)
 })
 
 function createSun() {
@@ -128,28 +141,30 @@ function createStars() {
 createStars()
 
 function createEngineEffect() {
-    if (!player) return
+    for (let p of [player, player2]) {
+        if (!p) continue
 
-    const geo = new THREE.SphereGeometry(0.1)
-    const mat = new THREE.MeshBasicMaterial({
-        color: 0x00aaff,
-        transparent: true,
-        opacity: 0.2
-    })
+        const geo = new THREE.SphereGeometry(0.1)
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0x00aaff,
+            transparent: true,
+            opacity: 0.2
+        })
 
-    const particle = new THREE.Mesh(geo, mat)
+        const particle = new THREE.Mesh(geo, mat)
 
-    particle.position.copy(player.position)
-    particle.position.z += 0.3
+        particle.position.copy(p.position)
+        particle.position.z += 0.3
 
-    particle.velocity = new THREE.Vector3(
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02,
-        0.2 + Math.random() * 0.1
-    )
+        particle.velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.02,
+            (Math.random() - 0.5) * 0.02,
+            0.2 + Math.random() * 0.1
+        )
 
-    scene.add(particle)
-    engineParticles.push(particle)
+        scene.add(particle)
+        engineParticles.push(particle)
+    }
 }
 
 function updateEngineEffect() {
@@ -195,27 +210,48 @@ function getBounds() {
 }
 
 function movePlayer() {
+    if (!player || !player2) return
     const playerSpeed = 0.1 * moveSpeedMultiplier * (effectTimers.speed > 0 ? 1.5 : 1)
 
-    if (keys["ArrowLeft"] || keys["a"]) {
+    if (keys["a"]) {
         player.position.x -= playerSpeed
         playerRotateZ1 = -radius
     } else playerRotateZ1 = 0
 
-    if (keys["ArrowRight"] || keys["d"]) {
+    if (keys["d"]) {
         player.position.x += playerSpeed
         playerRotateZ = radius
     } else playerRotateZ = 0
 
-    if (keys["ArrowUp"] || keys["w"]) {
+    if (keys["w"]) {
         player.position.y += playerSpeed
         playerRotateX1 = radius
     } else playerRotateX1 = 0
 
-    if (keys["ArrowDown"] || keys["s"]) {
+    if (keys["s"]) {
         player.position.y -= playerSpeed
         playerRotateX = -radius
     } else playerRotateX = 0
+
+    if (keys["ArrowLeft"]) {
+        player2.position.x -= playerSpeed
+        player2RotateZ1 = -radius
+    } else player2RotateZ1 = 0
+
+    if (keys["ArrowRight"]) {
+        player2.position.x += playerSpeed
+        player2RotateZ = radius
+    } else player2RotateZ = 0
+
+    if (keys["ArrowUp"]) {
+        player2.position.y += playerSpeed
+        player2RotateX1 = radius
+    } else player2RotateX1 = 0
+
+    if (keys["ArrowDown"]) {
+        player2.position.y -= playerSpeed
+        player2RotateX = -radius
+    } else player2RotateX = 0
 
     const bounds = getBounds()
     player.position.x = Math.max(-bounds.x, Math.min(bounds.x, player.position.x))
@@ -224,14 +260,21 @@ function movePlayer() {
     player.rotation.x += (playerRotateX - player.rotation.x) * angle
     player.rotation.z += (playerRotateZ1 - player.rotation.z) * angle
     player.rotation.x += (playerRotateX1 - player.rotation.x) * angle
+
+    player2.position.x = Math.max(-bounds.x, Math.min(bounds.x, player2.position.x))
+    player2.position.y = Math.max(-bounds.y, Math.min(bounds.y, player2.position.y))
+    player2.rotation.z += (player2RotateZ - player2.rotation.z) * angle
+    player2.rotation.x += (player2RotateX - player2.rotation.x) * angle
+    player2.rotation.z += (player2RotateZ1 - player2.rotation.z) * angle
+    player2.rotation.x += (player2RotateX1 - player2.rotation.x) * angle
 }
 
 function spawnPowerUp() {
     const geo = new THREE.TorusGeometry(0, 0)
-    const mat = new THREE.MeshStandardMaterial({ 
+    const mat = new THREE.MeshStandardMaterial({
         transparent: true,
         opacity: 0
-     })
+    })
     const p = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
     p.position.x = (Math.random() * 2 - 1) * bounds.x
@@ -253,7 +296,7 @@ function updatePowerUps() {
     for (let i = powerUps.length - 1; i >= 0; i--) {
         const p = powerUps[i]
         p.position.z += speed
-        if (checkCollision(player, p)) {
+        if (checkCollision(player, p) || checkCollision(player2, p)) {
             activatePowerUp(p.type)
             scene.remove(p)
             powerUps.splice(i, 1)
@@ -286,10 +329,10 @@ function activatePowerUp(type) {
 
 function spawnObstacle() {
     const geo = new THREE.TorusGeometry(0, 0)
-    const mat = new THREE.MeshStandardMaterial({ 
+    const mat = new THREE.MeshStandardMaterial({
         transparent: true,
         opacity: 0
-     })
+    })
     const o = new THREE.Mesh(geo, mat)
     const bounds = getBounds()
     o.position.x = (Math.random() * 2 - 1) * bounds.x
@@ -311,7 +354,7 @@ function updateObstacles() {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const o = obstacles[i]
         o.position.z += speed
-        if (checkCollision(player, o)) {
+        if (checkCollision(player, o) || checkCollision(player2, o)) {
             activatePowerDown(o.type)
             scene.remove(o)
             obstacles.splice(i, 1)
@@ -501,6 +544,16 @@ function updateAsteroid() {
             handleGameOver()
         }
 
+        if (checkCollision(player2, a)) {
+            if (activeEffects.shield) {
+                scene.remove(a)
+                asteroids.splice(i, 1)
+                continue
+            }
+            createExplosion(player2.position)
+            handleGameOver()
+        }
+
         if (!a.nearMissed && checkNearMiss(player, a)) {
             score += 3
             a.nearMissed = true
@@ -551,6 +604,15 @@ function updateAsteroid2() {
                 continue
             }
             createExplosion(player.position)
+            handleGameOver()
+        }
+        if (checkCollision(player2, a2)) {
+            if (activeEffects.shield) {
+                scene.remove(a2)
+                asteroids2.splice(i, 1)
+                continue
+            }
+            createExplosion(player2.position)
             handleGameOver()
         }
 
@@ -697,8 +759,11 @@ function restartGame() {
     shakeTime = 0
     camera.position.set(0, 0, camera.position.z)
 
-    player.position.set(0, 0, 0)
+    player.position.set(-1, 0, 0)
     player.rotation.set(0, 600, 0)
+
+    player2.position.set(1, 0, 0)
+    player2.rotation.set(0, 600, 0)
 }
 
 window.addEventListener("resize", () => {
