@@ -95,14 +95,14 @@ loader.load('/spaceship.glb', (gltf) => {
 })
 
 function createSun() {
-    const geometry = new THREE.SphereGeometry(180, 20, 20)
+    const geometry = new THREE.SphereGeometry(120, 20, 20)
     const material = new THREE.MeshBasicMaterial({
-        color: 0xfffffa
+        color: 0xfffff0
     })
 
     Sun = new THREE.Mesh(geometry, material)
 
-    Sun.position.set(-1400, 700, -900)
+    Sun.position.set(0, 0, -1100)
     scene.add(Sun)
 }
 createSun()
