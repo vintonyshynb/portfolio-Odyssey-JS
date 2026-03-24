@@ -154,8 +154,8 @@ function updateEnemyBullets() {
 }
 
 function spawnBoss() {
-    const geo = THREE.BoxGeometry(2, 2, 2)
-    const mat = THREE.MeshStandardMaterial({ color: 0xff00ff })
+    const geo = new THREE.BoxGeometry(2, 2, 2)
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff00ff })
     boss = new THREE.Mesh(geo, mat)
 
     boss.position.set(0, 3, -10)
@@ -167,15 +167,6 @@ function createEnemyGrid() {
     const cols = 6
     const spacing = 1.5
 
-    enemy.type = Math.random() < 0.3 ? "fast" : "normal"
-
-    if (enemy.type === "fast") {
-        enemy.material.color.set(0xff0000)
-        enemy, speedMultiplier = 2
-    } else {
-        enemy.speedMultiplier = 1
-    }
-
     for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
             const geo = new THREE.BoxGeometry(0.7, 0.7, 0.7)
@@ -185,6 +176,13 @@ function createEnemyGrid() {
             enemy.position.x = (x - cols / 2) * spacing
             enemy.position.y = 3 - y * spacing
             enemy.position.z = -10
+            enemy.type = Math.random() < 0.3 ? "fast" : "normal"
+            if (enemy.type === "fast") {
+                enemy.material.color.set(0xff0000)
+                enemy.speedMultiplier = 2
+            } else {
+                enemy.speedMultiplier = 1
+            }
 
             scene.add(enemy)
             enemies.push(enemy)
@@ -291,12 +289,12 @@ function updateEnemies() {
 
         const bounds = getBounds()
 
-        if (enemy.position.x > bounds.x || enemy.position.x < bounds.x) {
+        if (enemy.position.x > bounds.x || enemy.position.x < -bounds.x) {
             moveDown = true
         }
         if (enemy.type === "back") {
             enemy.position.z += enemy.speedZ
-    
+
             if (enemy.position.z > 5) {
                 scene.remove(enemy)
                 enemies.splice(enemies.indexOf(enemy), 1)
@@ -310,11 +308,12 @@ function updateEnemies() {
             }
         }
         if (Math.random() < 0.002) enemyShoot(enemy)
+
+        if (checkCollision(enemy, player) || checkCollision(enemy, player2)) {
+            handleGameOver()
+        }
     }
     if (boss && (checkCollision(boss, player) || checkCollision(boss, player2))) {
-        handleGameOver()
-    }
-    if (checkCollision(enemy, player) || checkCollision(enemy, player2)) {
         handleGameOver()
     }
 
@@ -340,7 +339,6 @@ function updateGameModeUI() {
     if (!modeUI) return
 
     modeUI.innerText = "Mode " + gameMode.toUpperCase()
-    updateGameModeUI()
 }
 
 document.addEventListener('keydown', (e) => {
@@ -733,9 +731,9 @@ function checkBulletEnemyCollisions() {
         if (boss && checkCollision(b, boss)) {
             scene.remove(b)
             bullets.splice(i, 1)
-    
+
             bossHP--
-    
+
             if (bossHP <= 0) {
                 scene.remove(boss)
                 boss = null
@@ -1019,6 +1017,9 @@ function restartGame() {
     enemies.forEach(e => scene.remove(e))
     enemies = []
 
+    enemyBullets.forEach(b => scene.remove(b))
+    enemyBullets = []
+
     for (const key in activeEffects) activeEffects[key] = false
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
@@ -1028,6 +1029,9 @@ function restartGame() {
     speedMultiplier = 0.5
     shakeTime = 0
     camera.position.set(0, 0, camera.position.z)
+
+    boss = null
+    bossHP = 20
 
     player.position.set(-1, 0, 0)
     player.rotation.set(0, 600, 0)
