@@ -65,7 +65,7 @@ const icons = {
 let moveSpeedMultiplier = 0.8
 let speedMultiplier = 0.5
 let speed = 0.05
-let score = 0
+let score = 199
 
 let playerRotateZ = 0
 let playerRotateX = 0
@@ -107,6 +107,7 @@ const gameOverUI = document.getElementById('gameOver')
 const fpsUI = document.getElementById('fps')
 let bestScoreValue = parseInt(localStorage.getItem("bestScore")) || 0
 document.getElementById('bestScore').innerText = "Best Score: " + bestScoreValue
+const bestScore = document.getElementById('bestScore')
 
 loader.load('/spaceship.glb', (gltf) => {
     player = gltf.scene
@@ -130,6 +131,7 @@ function updateLevel() {
 }
 
 function enemyShoot(enemy) {
+    if (!enemy) return
     const geo = new THREE.SphereGeometry(0.1)
     const mat = new THREE.MeshBasicMaterial({ color: 0xffff00 })
     const bullet = new THREE.Mesh(geo, mat)
@@ -146,7 +148,7 @@ function updateEnemyBullets() {
         const b = enemyBullets[i]
         b.position.add(b.velocity)
 
-        if (checkCollision(b, player) || checkCollision(b, player2)) {
+        if ((player && checkCollision(b, player)) || (player2 && checkCollision(b, player2))) {
             handleGameOver()
         }
         if (b.position.z > 5) {
@@ -166,29 +168,31 @@ function spawnBoss() {
 }
 
 function createEnemyGrid() {
-    const rows = 3
-    const cols = 6
-    const spacing = 1.5
+    if (gameMode == "2") {
+        const rows = 3
+        const cols = 6
+        const spacing = 1.5
 
-    for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-            const geo = new THREE.BoxGeometry(0.7, 0.7, 0.7)
-            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
-            const enemy = new THREE.Mesh(geo, mat)
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const geo = new THREE.BoxGeometry(0.7, 0.7, 0.7)
+                const mat = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+                const enemy = new THREE.Mesh(geo, mat)
 
-            enemy.position.x = (x - cols / 2) * spacing
-            enemy.position.y = 3 - y * spacing
-            enemy.position.z = -10
-            enemy.type = Math.random() < 0.3 ? "fast" : "normal"
-            if (enemy.type === "fast") {
-                enemy.material.color.set(0xff0000)
-                enemy.speedMultiplier = 2
-            } else {
-                enemy.speedMultiplier = 1
+                enemy.position.x = (x - cols / 2) * spacing
+                enemy.position.y = 3 - y * spacing
+                enemy.position.z = -10
+                enemy.type = Math.random() < 0.3 ? "fast" : "normal"
+                if (enemy.type === "fast") {
+                    enemy.material.color.set(0xff0000)
+                    enemy.speedMultiplier = 2
+                } else {
+                    enemy.speedMultiplier = 1
+                }
+
+                scene.add(enemy)
+                enemies.push(enemy)
             }
-
-            scene.add(enemy)
-            enemies.push(enemy)
         }
     }
 }
@@ -259,7 +263,7 @@ function addScore(points) {
 
     if (score > bestScoreValue) {
         bestScoreValue = score
-        bestScore.innerText = "Best Score: " + bestScoreValue
+        if (bestScore) bestScore.innerText = "Best Score: " + bestScoreValue
         localStorage.setItem("bestScore", bestScoreValue)
     }
 }
@@ -306,7 +310,7 @@ function updateEnemies() {
         }
         if (Math.random() < 0.002) enemyShoot(enemy)
 
-        if (checkCollision(enemy, player) || checkCollision(enemy, player2)) {
+        if ((player && checkCollision(enemy, player)) || (player2 && checkCollision(enemy, player2))) {
             handleGameOver()
         }
     }
@@ -685,9 +689,10 @@ function applyScreenShake() {
 }
 
 function checkCollision(player, asteroid) {
+    if (!player || !asteroid || !player.position || !asteroid.position) return false
     const distance = player.position.distanceTo(asteroid.position)
     const playerRadius = 0.5
-    const asteroidRadius = asteroid.geometry.parameters.radius || 0.5
+    const asteroidRadius = asteroid.geometry?.parameters?.radius || 0.5
     return distance < (playerRadius + asteroidRadius)
 }
 
@@ -768,7 +773,7 @@ function updateAsteroid() {
         a.rotation.x += 0.001
         a.rotation.y += 0.002
 
-        if (checkCollision(player, a)) {
+        if (player && checkCollision(player, a)) {
             if (activeEffects.shield) {
                 scene.remove(a)
                 asteroids.splice(i, 1)
@@ -778,7 +783,7 @@ function updateAsteroid() {
             handleGameOver()
         }
 
-        if (checkCollision(player2, a)) {
+        if (player2 && checkCollision(player2, a)) {
             if (activeEffects.shield) {
                 scene.remove(a)
                 asteroids.splice(i, 1)
@@ -795,7 +800,7 @@ function updateAsteroid() {
             scoreUI.innerText = "Score: " + score
             if (score > bestScoreValue) {
                 bestScoreValue = score
-                bestScore.innerText = "Best Score: " + bestScoreValue
+                if (bestScore) bestScore.innerText = "Best Score: " + bestScoreValue
                 localStorage.setItem("bestScore", bestScoreValue)
             }
         }
@@ -807,7 +812,7 @@ function updateAsteroid() {
             scoreUI.innerText = "Score: " + score
             if (score > bestScoreValue) {
                 bestScoreValue = score
-                bestScore.innerText = "Best Score: " + bestScoreValue
+                if (bestScore) bestScore.innerText = "Best Score: " + bestScoreValue
                 localStorage.setItem("bestScore", bestScoreValue)
             }
         }
@@ -831,7 +836,7 @@ function updateAsteroid2() {
         a2.rotation.x += 0.5
         a2.rotation.y += 0.3
 
-        if (checkCollision(player, a2)) {
+        if (player && checkCollision(player, a2)) {
             if (activeEffects.shield) {
                 scene.remove(a2)
                 asteroids2.splice(i, 1)
@@ -840,7 +845,7 @@ function updateAsteroid2() {
             createExplosion(player.position)
             handleGameOver()
         }
-        if (checkCollision(player2, a2)) {
+        if (player2 && checkCollision(player2, a2)) {
             if (activeEffects.shield) {
                 scene.remove(a2)
                 asteroids2.splice(i, 1)
@@ -857,7 +862,7 @@ function updateAsteroid2() {
             scoreUI.innerText = "Score: " + score
             if (score > bestScoreValue) {
                 bestScoreValue = score
-                bestScore.innerText = "Best Score: " + bestScoreValue
+                if (bestScore) bestScore.innerText = "Best Score: " + bestScoreValue
                 localStorage.setItem("bestScore", bestScoreValue)
             }
         }
@@ -869,7 +874,7 @@ function updateAsteroid2() {
             scoreUI.innerText = "Score: " + score
             if (score > bestScoreValue) {
                 bestScoreValue = score
-                bestScore.innerText = "Best Score: " + bestScoreValue
+                if (bestScore) bestScore.innerText = "Best Score: " + bestScoreValue
                 localStorage.setItem("bestScore", bestScoreValue)
             }
         }
@@ -970,6 +975,7 @@ function animate() {
             if (Math.random() < 0.005) spawnBackEnemy()
             updateEnemies()
             checkBulletEnemyCollisions()
+
         }
         if (gameMode == "invader" && score > 200 && !boss) {
             spawnBoss()
@@ -984,12 +990,11 @@ function animate() {
     applyScreenShake()
     if (audio.paused) {
         audio.loop = true
-        audio.play()
+        audio.play().catch(() => { })
     }
     updateFPS()
     if (Math.random() < 0.3) createEngineEffect()
 
-    updateGameModeUI()
     updateEngineEffect()
     renderer.render(scene, camera)
 }
