@@ -9,6 +9,20 @@ let stars
 let radius = 0.3
 let angle = 0.1
 let Sun
+let enemies = []
+let enemyDirection = 1
+let enemySpeed = 0.02
+let enemyStepDown = 0.5
+let level = 1
+let boss = null
+let bossHP = 20
+
+let gameMode = "runner"
+
+let bullets = []
+const MAX_BULLETS = 3
+
+let enemyBullets = []
 
 let powerUps = []
 let obstacles = []
@@ -99,13 +113,84 @@ loader.load('/spaceship.glb', (gltf) => {
     player.rotation.set(0, 600, 0)
 })
 
-loader.load('/spaceship.glb', (gltf) => {
+loader.load('/quaternius_cc0-spaceship-1367.glb', (gltf) => {
     player2 = gltf.scene
     scene.add(player2)
     player2.scale.set(0.2, 0.2, 0.2)
     player2.position.set(1, 0, 0)
     player2.rotation.set(0, 600, 0)
 })
+
+function updateLevel() {
+    level = Math.floor(score / 100) + 1
+    enemySpeed = 0.02 + level * 0.005
+}
+
+function enemyShoot(enemy) {
+    const geo = new THREE.SphereGeometry(0.1)
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffff00 })
+    const bullet = new THREE.Mesh(geo, mat)
+
+    bullet.position.copy(enemy.position)
+    bullet.velocity = new THREE.Vector3(0, 0, 0.2)
+
+    scene.add(bullet)
+    enemyBullets.push(bullet)
+}
+
+function updateEnemyBullets() {
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const b = enemyBullets[i]
+        b.position.add(b.velocity)
+
+        if (checkCollision(b, player) || checkCollision(b, player2)) {
+            handleGameOver()
+        }
+        if (b.position.z > 5) {
+            scene.remove(b)
+            enemyBullets.splice(i, 1)
+        }
+    }
+}
+
+function spawnBoss() {
+    const geo = THREE.BoxGeometry(2, 2, 2)
+    const mat = THREE.MeshStandardMaterial({ color: 0xff00ff })
+    boss = new THREE.Mesh(geo, mat)
+
+    boss.position.set(0, 3, -10)
+    scene.add(boss)
+}
+
+function createEnemyGrid() {
+    const rows = 3
+    const cols = 6
+    const spacing = 1.5
+
+    enemy.type = Math.random() < 0.3 ? "fast" : "normal"
+
+    if (enemy.type === "fast") {
+        enemy.material.color.set(0xff0000)
+        enemy, speedMultiplier = 2
+    } else {
+        enemy.speedMultiplier = 1
+    }
+
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            const geo = new THREE.BoxGeometry(0.7, 0.7, 0.7)
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+            const enemy = new THREE.Mesh(geo, mat)
+
+            enemy.position.x = (x - cols / 2) * spacing
+            enemy.position.y = 3 - y * spacing
+            enemy.position.z = -10
+
+            scene.add(enemy)
+            enemies.push(enemy)
+        }
+    }
+}
 
 function createSun() {
     const geometry = new THREE.SphereGeometry(120, 20, 20)
@@ -167,6 +252,74 @@ function createEngineEffect() {
     }
 }
 
+function addScore(points) {
+    score += points
+    scoreUI.innerText = "Score: " + score
+
+    if (score > bestScoreValue) {
+        bestScoreValue = score
+        bestScore.innerText = "Best Score: " + bestScoreValue
+        localStorage.setItem("bestScore", bestScoreValue)
+    }
+}
+
+function spawnBackEnemy() {
+    const geo = new THREE.BoxGeometry(0.7, 0.7, 0.7)
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffff00 })
+
+    const enemy = new THREE.Mesh(geo, mat)
+
+    const bounds = getBounds()
+    enemy.position.x = (Math.random() * 2 - 1) * bounds.x
+    enemy.position.y = (Math.random() * 2 - 1) * bounds.y
+    enemy.position.z = -30
+
+    enemy.type = "back"
+    enemy.speedZ = 0.1
+
+    scene.add(enemy)
+    enemies.push(enemy)
+}
+
+function updateEnemies() {
+    if (enemies.length === 0) return
+
+    let moveDown = false
+
+    for (let enemy of enemies) {
+        enemy.position.x += enemySpeed * enemyDirection * (enemy.speedMultiplier || 1)
+
+        const bounds = getBounds()
+
+        if (enemy.position.x > bounds.x || enemy.position.x < bounds.x) {
+            moveDown = true
+        }
+        if (enemy.type === "back") {
+            enemy.position.z += enemy.speedZ
+    
+            if (enemy.position.z > 5) {
+                scene.remove(enemy)
+                enemies.splice(enemies.indexOf(enemy), 1)
+                continue
+            }
+        }
+        if (moveDown) {
+            enemyDirection *= -1
+            for (let enemy of enemies) {
+                enemy.position.y -= enemyStepDown
+            }
+        }
+        if (Math.random() < 0.002) enemyShoot(enemy)
+    }
+    if (boss && (checkCollision(boss, player) || checkCollision(boss, player2))) {
+        handleGameOver()
+    }
+    if (checkCollision(enemy, player) || checkCollision(enemy, player2)) {
+        handleGameOver()
+    }
+
+}
+
 function updateEngineEffect() {
     for (let i = engineParticles.length - 1; i >= 0; i--) {
         const p = engineParticles[i]
@@ -182,11 +335,20 @@ function updateEngineEffect() {
     }
 }
 
+function updateGameModeUI() {
+    const modeUI = document.getElementById("gameMode")
+    if (!modeUI) return
+
+    modeUI.innerText = "Mode " + gameMode.toUpperCase()
+    updateGameModeUI()
+}
+
 document.addEventListener('keydown', (e) => {
     keys[e.key] = true
     if (e.key === 'Enter' && !gameStarted) {
         gameStarted = true
         startScreen.style.display = "none"
+        createEnemyGrid()
     }
     if (e.key === 'p') {
         paused = !paused
@@ -195,11 +357,33 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'r' && gameOver) {
         restartGame()
     }
+    if (e.key === '1') {
+        gameMode = "runner"
+        updateGameModeUI()
+    }
+    if (e.key === '2') {
+        gameMode = "invader"
+        updateGameModeUI()
+    }
 })
 
 document.addEventListener('keyup', (e) => {
     keys[e.key] = false
 })
+
+document.addEventListener('mousedown', (e) => {
+    if (!gameStarted || paused || gameOver) return
+
+    if (e.button === 0) {
+        shoot(player)
+    }
+
+    if (e.button === 2) {
+        shoot(player2)
+    }
+})
+
+window.addEventListener("contextmenu", (e) => e.preventDefault())
 
 function getBounds() {
     const distance = camera.position.z
@@ -452,6 +636,20 @@ function spawnAsteroid2() {
     asteroid2.homingTime = Math.max(0.3, 1.5 - score * 0.005)
 }
 
+function shoot(playerObj) {
+    if (!playerObj) return
+    if (bullets.length >= MAX_BULLETS) return
+
+    const geo = new THREE.SphereGeometry(0.1)
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    const bullet = new THREE.Mesh(geo, mat)
+    bullet.position.copy(playerObj.position)
+    bullet.position.z -= 0.5
+    bullet.velocity = new THREE.Vector3(0, 0, -0.5)
+    scene.add(bullet)
+    bullets.push(bullet)
+}
+
 function checkNearMiss(player, asteroid) {
     const distance = player.position.distanceTo(asteroid.position)
     return distance < 2 && distance > 1
@@ -509,6 +707,41 @@ function checkAsteroidCollisions() {
 
                 break
             }
+        }
+    }
+}
+
+function checkBulletEnemyCollisions() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            const b = bullets[i]
+            const e = enemies[j]
+
+            if (checkCollision(b, e)) {
+                scene.remove(b)
+                scene.remove(e)
+
+                bullets.splice(i, 1)
+                enemies.splice(j, 1)
+
+                addScore(10)
+                scoreUI.innerText = "Score: " + score
+
+                break
+            }
+        }
+        if (boss && checkCollision(b, boss)) {
+            scene.remove(b)
+            bullets.splice(i, 1)
+    
+            bossHP--
+    
+            if (bossHP <= 0) {
+                scene.remove(boss)
+                boss = null
+                addScore(100)
+            }
+            break
         }
     }
 }
@@ -643,9 +876,28 @@ function updateAsteroid2() {
     }
 }
 
+function updateBullets() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i]
+        b.position.add(b.velocity)
+
+        if (b.position.z < -50) {
+            scene.remove(b)
+            bullets.splice(i, 1)
+        }
+    }
+}
+
 function handleGameOver() {
     gameOver = true
     gameOverUI.style.display = "block"
+
+    gameOverUI.innerHTML = `
+        <h1>GAME OVER</h1>
+        <p>Score: ${score}</p>
+        <p>Best: ${bestScoreValue}</p>
+        <p>Press R to restart</p>
+    `
 
     for (const key in activeEffects) activeEffects[key] = false
     for (const key in effectTimers) effectTimers[key] = 0
@@ -701,17 +953,31 @@ function animate() {
     requestAnimationFrame(animate)
     if (gameStarted && !paused && !gameOver && player) {
         movePlayer()
-        if (Math.random() < 0.02) spawnAsteroid()
-        if (Math.random() < 0.005) spawnAsteroid2()
-        if (Math.random() < 0.0009) spawnPowerUp()
-        if (Math.random() < 0.0009) spawnObstacle()
-        updateAsteroid()
-        updateAsteroid2()
-        checkAsteroidCollisions()
+        if (gameMode === "runner") {
+            if (Math.random() < 0.02) spawnAsteroid()
+            if (Math.random() < 0.005) spawnAsteroid2()
+            if (Math.random() < 0.0009) spawnPowerUp()
+            if (Math.random() < 0.0009) spawnObstacle()
+
+            updateAsteroid()
+            updateAsteroid2()
+            updatePowerUps()
+            updateObstacles()
+            checkAsteroidCollisions()
+        }
+        if (gameMode === "invader") {
+            if (Math.random() < 0.005) spawnBackEnemy()
+            updateEnemies()
+            checkBulletEnemyCollisions()
+        }
+        if (gameMode == "invader" && score > 200 && !boss) {
+            spawnBoss()
+        }
+        updateBullets()
         updateDifficulty()
         updateParticles()
-        updatePowerUps()
-        updateObstacles()
+        updateLevel()
+        updateEnemyBullets()
     }
     if (stars) updateStars()
     applyScreenShake()
@@ -750,9 +1016,13 @@ function restartGame() {
     effectIntervals.forEach(i => clearInterval(i))
     effectIntervals = []
 
+    enemies.forEach(e => scene.remove(e))
+    enemies = []
+
     for (const key in activeEffects) activeEffects[key] = false
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
+    updateGameModeUI()
 
     moveSpeedMultiplier = 0.8
     speedMultiplier = 0.5
