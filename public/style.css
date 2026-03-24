@@ -76,3 +76,12 @@ h1 {
     text-align: center;
     z-index: 100;
 }
+
+#gameMode {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    color: #00ffea;
+    font-family: Arial;
+    font-size: 20px;
+}
