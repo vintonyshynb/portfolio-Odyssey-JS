@@ -45,7 +45,10 @@ let activeEffects = {
 let effectTimers = {
     shield: 0,
     slow: 0,
-    double: 0
+    double: 0,
+    speed: 0,
+    invert: 0,
+    shake: 0
 }
 let effectIntervals = []
 const textureLoader = new THREE.TextureLoader()
@@ -301,16 +304,16 @@ function updateEnemies() {
                 continue
             }
         }
-        if (moveDown) {
-            enemyDirection *= -1
-            for (let enemy of enemies) {
-                enemy.position.y -= enemyStepDown
-            }
-        }
         if (Math.random() < 0.002) enemyShoot(enemy)
 
         if (checkCollision(enemy, player) || checkCollision(enemy, player2)) {
             handleGameOver()
+        }
+    }
+    if (moveDown) {
+        enemyDirection *= -1
+        for (let enemy of enemies) {
+            enemy.position.y -= enemyStepDown
         }
     }
     if (boss && (checkCollision(boss, player) || checkCollision(boss, player2))) {
@@ -984,7 +987,9 @@ function animate() {
         audio.play()
     }
     updateFPS()
-    createEngineEffect()
+    if (Math.random() < 0.3) createEngineEffect()
+
+    updateGameModeUI()
     updateEngineEffect()
     renderer.render(scene, camera)
 }
