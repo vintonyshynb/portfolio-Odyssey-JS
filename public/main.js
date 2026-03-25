@@ -24,6 +24,9 @@ const MAX_BULLETS = 3
 
 let enemyBullets = []
 
+let bossBullets = []
+let bossShootCooldown = 0
+
 let powerUps = []
 let obstacles = []
 let asteroids = []
@@ -65,7 +68,7 @@ const icons = {
 let moveSpeedMultiplier = 0.8
 let speedMultiplier = 0.5
 let speed = 0.05
-let score = 199
+let score = 0
 
 let playerRotateZ = 0
 let playerRotateX = 0
@@ -117,13 +120,13 @@ loader.load('/spaceship.glb', (gltf) => {
     player.rotation.set(0, 600, 0)
 })
 
-loader.load('/quaternius_cc0-spaceship-1367.glb', (gltf) => {
+/*loader.load('/quaternius_cc0-spaceship-1367.glb', (gltf) => {
     player2 = gltf.scene
     scene.add(player2)
     player2.scale.set(0.2, 0.2, 0.2)
     player2.position.set(1, 0, 0)
     player2.rotation.set(0, 600, 0)
-})
+})*/
 
 function updateLevel() {
     level = Math.floor(score / 100) + 1
@@ -163,12 +166,42 @@ function spawnBoss() {
     const mat = new THREE.MeshStandardMaterial({ color: 0xff00ff })
     boss = new THREE.Mesh(geo, mat)
 
-    boss.position.set(0, 3, -10)
+    boss.position.set(-2, 3, -10)
     scene.add(boss)
+
+    bossHP = 20
+}
+
+function bossShoot(boss) {
+    if (!boss) return
+    const geo = new THREE.SphereGeometry(0.1)
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffff00 })
+    const bulletBoss = new THREE.Mesh(geo, mat)
+
+    bulletBoss.position.copy(boss.position)
+    bulletBoss.velocity = new THREE.Vector3(0, 0, 0.2)
+
+    scene.add(bulletBoss)
+    bossBullets.push(bulletBoss)
+}
+
+function updateBossBullets() {
+    for (let i = bossBullets.length - 1; i >= 0; i--) {
+        const b = bossBullets[i]
+        b.position.add(b.velocity)
+
+        if ((player && checkNearMiss(player, b)) || (player2 && checkCollision(player2, b))) {
+            handleGameOver()
+        }
+        if (b.position.z > 5) {
+            scene.remove(b)
+            bossBullets.splice(i, 1)
+        }
+    }
 }
 
 function createEnemyGrid() {
-    if (gameMode == "2") {
+    if (gameMode == "invader") {
         const rows = 3
         const cols = 6
         const spacing = 1.5
@@ -399,7 +432,7 @@ function getBounds() {
 }
 
 function movePlayer() {
-    if (!player || !player2) return
+    /*if (!player || !player2) return*/
     const playerSpeed = 0.1 * moveSpeedMultiplier * (effectTimers.speed > 0 ? 1.5 : 1)
 
     if (keys["a"]) {
@@ -422,7 +455,7 @@ function movePlayer() {
         playerRotateX = -radius
     } else playerRotateX = 0
 
-    if (keys["ArrowLeft"]) {
+    /*if (keys["ArrowLeft"]) {
         player2.position.x -= playerSpeed
         player2RotateZ1 = -radius
     } else player2RotateZ1 = 0
@@ -440,7 +473,7 @@ function movePlayer() {
     if (keys["ArrowDown"]) {
         player2.position.y -= playerSpeed
         player2RotateX = -radius
-    } else player2RotateX = 0
+    } else player2RotateX = 0*/
 
     const bounds = getBounds()
     player.position.x = Math.max(-bounds.x, Math.min(bounds.x, player.position.x))
@@ -450,12 +483,12 @@ function movePlayer() {
     player.rotation.z += (playerRotateZ1 - player.rotation.z) * angle
     player.rotation.x += (playerRotateX1 - player.rotation.x) * angle
 
-    player2.position.x = Math.max(-bounds.x, Math.min(bounds.x, player2.position.x))
+    /*player2.position.x = Math.max(-bounds.x, Math.min(bounds.x, player2.position.x))
     player2.position.y = Math.max(-bounds.y, Math.min(bounds.y, player2.position.y))
     player2.rotation.z += (player2RotateZ - player2.rotation.z) * angle
     player2.rotation.x += (player2RotateX - player2.rotation.x) * angle
     player2.rotation.z += (player2RotateZ1 - player2.rotation.z) * angle
-    player2.rotation.x += (player2RotateX1 - player2.rotation.x) * angle
+    player2.rotation.x += (player2RotateX1 - player2.rotation.x) * angle*/
 }
 
 function spawnPowerUp() {
@@ -692,7 +725,7 @@ function checkCollision(player, asteroid) {
     if (!player || !asteroid || !player.position || !asteroid.position) return false
     const distance = player.position.distanceTo(asteroid.position)
     const playerRadius = 0.5
-    const asteroidRadius = asteroid.geometry?.parameters?.radius || 0.5
+    const asteroidRadius = asteroid.geometry?.parameters?.radius || 1
     return distance < (playerRadius + asteroidRadius)
 }
 
@@ -739,7 +772,6 @@ function checkBulletEnemyCollisions() {
         if (boss && checkCollision(b, boss)) {
             scene.remove(b)
             bullets.splice(i, 1)
-
             bossHP--
 
             if (bossHP <= 0) {
@@ -751,6 +783,7 @@ function checkBulletEnemyCollisions() {
         }
     }
 }
+
 
 function updateOpacity(object) {
     const distance = camera.position.z - object.position.z
@@ -975,9 +1008,8 @@ function animate() {
             if (Math.random() < 0.005) spawnBackEnemy()
             updateEnemies()
             checkBulletEnemyCollisions()
-
         }
-        if (gameMode == "invader" && score > 200 && !boss) {
+        if (gameMode == "invader" && score >= 200 && !boss) {
             spawnBoss()
         }
         updateBullets()
@@ -985,6 +1017,14 @@ function animate() {
         updateParticles()
         updateLevel()
         updateEnemyBullets()
+        updateBossBullets()
+        if (boss) {
+            bossShootCooldown -= 0.016
+            if (bossShootCooldown <= 0) {
+                bossShoot(boss)
+                bossShootCooldown = 2
+            }
+        }
     }
     if (stars) updateStars()
     applyScreenShake()
@@ -1034,13 +1074,17 @@ function restartGame() {
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
     updateGameModeUI()
+    createEnemyGrid()
 
     moveSpeedMultiplier = 0.8
     speedMultiplier = 0.5
     shakeTime = 0
     camera.position.set(0, 0, camera.position.z)
 
-    boss = null
+    if (boss) {
+        scene.remove(boss)
+        boss = null
+    }
     bossHP = 20
 
     player.position.set(-1, 0, 0)
