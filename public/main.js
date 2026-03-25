@@ -16,6 +16,7 @@ let enemyStepDown = 0.5
 let level = 1
 let boss = null
 let bossHP = 20
+let bossSpawned = false
 
 let gameMode = "runner"
 
@@ -120,13 +121,13 @@ loader.load('/spaceship.glb', (gltf) => {
     player.rotation.set(0, 600, 0)
 })
 
-/*loader.load('/quaternius_cc0-spaceship-1367.glb', (gltf) => {
+loader.load('/quaternius_cc0-spaceship-1367.glb', (gltf) => {
     player2 = gltf.scene
     scene.add(player2)
     player2.scale.set(0.2, 0.2, 0.2)
     player2.position.set(1, 0, 0)
     player2.rotation.set(0, 600, 0)
-})*/
+})
 
 function updateLevel() {
     level = Math.floor(score / 100) + 1
@@ -147,7 +148,7 @@ function enemyShoot(enemy) {
 }
 
 function checkCollision(a, b) {
-    if (!a || !b || !a.position ||b.position) return false
+    if (!a || !b || !a.position || !b.position) return false
 
     const distance = a.position.distanceTo(b.position)
     const getRadius = (obj) => {
@@ -212,6 +213,17 @@ function updateBossBullets() {
             bossBullets.splice(i, 1)
         }
     }
+}
+
+function checkBossCollision(obj, boss) {
+    if (!obj || !boss) return false
+
+    const radius = 0.2
+
+    const bossBox = new THREE.Box3().setFromObject(boss)
+    const sphere = new THREE.Sphere(obj.position.clone(), radius)
+
+    return bossBox.intersectsSphere(sphere)
 }
 
 function createEnemyGrid() {
@@ -334,7 +346,6 @@ function spawnBackEnemy() {
 }
 
 function updateEnemies() {
-    if (enemies.length === 0) return
 
     let moveDown = false
 
@@ -361,16 +372,39 @@ function updateEnemies() {
             handleGameOver()
         }
     }
+    if (boss && (checkBossCollision(player, boss) || checkBossCollision(player2, boss))) {
+        handleGameOver()
+    }
+    if (enemies.length === 0) return
+
     if (moveDown) {
         enemyDirection *= -1
         for (let enemy of enemies) {
             enemy.position.y -= enemyStepDown
         }
     }
-    if (boss && (checkCollision(boss, player) || checkCollision(boss, player2))) {
-        handleGameOver()
-    }
 
+}
+
+function removeBoss() {
+    if (!boss) return
+
+    scene.remove(boss)
+
+    boss.traverse((child) => {
+        if (child.geometry) child.geometry.dispose()
+        if (child.material) {
+            if (Array.isArray(child.material)) {
+                child.material.forEach(m => m.dispose())
+            } else {
+                child.material.dispose()
+            }
+        }
+    })
+
+    boss = null
+    bossHP = 20
+    bossSpawned = false
 }
 
 function updateEngineEffect() {
@@ -393,6 +427,12 @@ function updateGameModeUI() {
     if (!modeUI) return
 
     modeUI.innerText = "Mode " + gameMode.toUpperCase()
+
+    if (boss) {
+        scoreUI.innerText = "Score: " + score + " | BOSS HP: " + bossHP
+    } else {
+        scoreUI.innerText = "Score: " + score
+    }
 }
 
 document.addEventListener('keydown', (e) => {
@@ -446,7 +486,7 @@ function getBounds() {
 }
 
 function movePlayer() {
-    /*if (!player || !player2) return*/
+    if (!player || !player2) return
     const playerSpeed = 0.1 * moveSpeedMultiplier * (effectTimers.speed > 0 ? 1.5 : 1)
 
     if (keys["a"]) {
@@ -469,7 +509,7 @@ function movePlayer() {
         playerRotateX = -radius
     } else playerRotateX = 0
 
-    /*if (keys["ArrowLeft"]) {
+    if (keys["ArrowLeft"]) {
         player2.position.x -= playerSpeed
         player2RotateZ1 = -radius
     } else player2RotateZ1 = 0
@@ -487,7 +527,7 @@ function movePlayer() {
     if (keys["ArrowDown"]) {
         player2.position.y -= playerSpeed
         player2RotateX = -radius
-    } else player2RotateX = 0*/
+    } else player2RotateX = 0
 
     const bounds = getBounds()
     player.position.x = Math.max(-bounds.x, Math.min(bounds.x, player.position.x))
@@ -497,12 +537,12 @@ function movePlayer() {
     player.rotation.z += (playerRotateZ1 - player.rotation.z) * angle
     player.rotation.x += (playerRotateX1 - player.rotation.x) * angle
 
-    /*player2.position.x = Math.max(-bounds.x, Math.min(bounds.x, player2.position.x))
+    player2.position.x = Math.max(-bounds.x, Math.min(bounds.x, player2.position.x))
     player2.position.y = Math.max(-bounds.y, Math.min(bounds.y, player2.position.y))
     player2.rotation.z += (player2RotateZ - player2.rotation.z) * angle
     player2.rotation.x += (player2RotateX - player2.rotation.x) * angle
     player2.rotation.z += (player2RotateZ1 - player2.rotation.z) * angle
-    player2.rotation.x += (player2RotateX1 - player2.rotation.x) * angle*/
+    player2.rotation.x += (player2RotateX1 - player2.rotation.x) * angle
 }
 
 function spawnPowerUp() {
@@ -735,14 +775,6 @@ function applyScreenShake() {
     }
 }
 
-function checkCollision(player, asteroid) {
-    if (!player || !asteroid || !player.position || !asteroid.position) return false
-    const distance = player.position.distanceTo(asteroid.position)
-    const playerRadius = 0.5
-    const asteroidRadius = asteroid.geometry?.parameters?.radius || 1
-    return distance < (playerRadius + asteroidRadius)
-}
-
 function checkAsteroidCollisions() {
     for (let i = asteroids.length - 1; i >= 0; i--) {
         for (let j = asteroids2.length - 1; j >= 0; j--) {
@@ -766,37 +798,37 @@ function checkAsteroidCollisions() {
 
 function checkBulletEnemyCollisions() {
     for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+
         for (let j = enemies.length - 1; j >= 0; j--) {
-            const b = bullets[i]
-            const e = enemies[j]
+            const e = enemies[j];
 
             if (checkCollision(b, e)) {
-                scene.remove(b)
-                scene.remove(e)
+                scene.remove(b);
+                scene.remove(e);
 
-                bullets.splice(i, 1)
-                enemies.splice(j, 1)
+                bullets.splice(i, 1);
+                enemies.splice(j, 1);
 
-                addScore(10)
-                scoreUI.innerText = "Score: " + score
-
-                break
+                addScore(10);
+                break;
             }
         }
-        if (boss && checkCollision(b, boss)) {
-            scene.remove(b)
-            bullets.splice(i, 1)
-            bossHP--
 
-            createExplosion(boss.position)
+        if (boss && checkBossCollision(b, boss)) {
+            scene.remove(b);
+            bullets.splice(i, 1);
+
+            bossHP--;
+
+            createExplosion(boss.position);
 
             if (bossHP <= 0) {
-                createExplosion(boss.position)
-                scene.remove(boss)
-                boss = null
-                addScore(100)
+                createExplosion(boss.position);
+                scene.remove(boss);
+                boss = null;
+                addScore(100);
             }
-            continue
         }
     }
 }
@@ -1035,9 +1067,22 @@ function animate() {
 
             asteroids2.forEach(a2 => scene.remove(a2))
             asteroids2 = []
+
+            particles.forEach(p => scene.remove(p))
+            particles = []
+
+            powerUps.forEach(p => scene.remove(p))
+            powerUps = []
+
+            obstacles.forEach(o => scene.remove(o))
+            obstacles = []
+
+            effectIntervals.forEach(i => clearInterval(i))
+            effectIntervals = []
         }
-        if (gameMode == "invader" && score >= 200 && !boss) {
+        if (gameMode == "invader" && score > 0 && score % 200 == 0 && !boss && !bossSpawned) {
             spawnBoss()
+            bossSpawned = true
         }
         updateBullets()
         updateDifficulty()
@@ -1049,7 +1094,7 @@ function animate() {
             bossShootCooldown -= 0.016
             if (bossShootCooldown <= 0) {
                 bossShoot(boss)
-                bossShootCooldown = 2
+                bossShootCooldown = 1.5
             }
         }
     }
@@ -1097,6 +1142,10 @@ function restartGame() {
     enemyBullets.forEach(b => scene.remove(b))
     enemyBullets = []
 
+    removeBoss()
+
+    bossSpawned = false
+
     for (const key in activeEffects) activeEffects[key] = false
     for (const key in effectTimers) effectTimers[key] = 0
     updateEffectsHUD()
@@ -1110,6 +1159,18 @@ function restartGame() {
 
     if (boss) {
         scene.remove(boss)
+
+        boss.traverse((child) => {
+            if (child.geometry) child.geometry.dispose()
+            if (child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(m => m.dispose())
+                } else {
+                    child.material.dispose()
+                }
+            }
+        })
+
         boss = null
     }
     bossHP = 20
