@@ -146,6 +146,20 @@ function enemyShoot(enemy) {
     enemyBullets.push(bullet)
 }
 
+function checkCollision(a, b) {
+    if (!a || !b || !a.position ||b.position) return false
+
+    const distance = a.position.distanceTo(b.position)
+    const getRadius = (obj) => {
+        if (obj.geometry?.parameters?.radius) return obj.geometry.parameters.radius
+        if (obj.geometry?.parameters?.width) return obj.geometry.parameters.width / 2
+        return 1
+    }
+    const r1 = getRadius(a)
+    const r2 = getRadius(b)
+    return distance < (r1 + r2)
+}
+
 function updateEnemyBullets() {
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         const b = enemyBullets[i]
@@ -774,12 +788,15 @@ function checkBulletEnemyCollisions() {
             bullets.splice(i, 1)
             bossHP--
 
+            createExplosion(boss.position)
+
             if (bossHP <= 0) {
+                createExplosion(boss.position)
                 scene.remove(boss)
                 boss = null
                 addScore(100)
             }
-            break
+            continue
         }
     }
 }
@@ -1003,11 +1020,21 @@ function animate() {
             updatePowerUps()
             updateObstacles()
             checkAsteroidCollisions()
+            enemies.forEach(e => scene.remove(e))
+            enemies = []
+
+            enemyBullets.forEach(b => scene.remove(b))
+            enemyBullets = []
         }
         if (gameMode === "invader") {
             if (Math.random() < 0.005) spawnBackEnemy()
             updateEnemies()
             checkBulletEnemyCollisions()
+            asteroids.forEach(a => scene.remove(a))
+            asteroids = []
+
+            asteroids2.forEach(a2 => scene.remove(a2))
+            asteroids2 = []
         }
         if (gameMode == "invader" && score >= 200 && !boss) {
             spawnBoss()
