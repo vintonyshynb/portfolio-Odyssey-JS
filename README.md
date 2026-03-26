@@ -7,6 +7,7 @@ A simple 3D space game built with **Three.js**, where you control a spaceship an
 * Move your spaceship using:
 
   * `W / A / S / D` or Arrow Keys
+  * Left and Right mouse click it's Attack
 * Avoid asteroids
 * Score increases over time
 * Press `R` to restart after Game Over
@@ -19,6 +20,7 @@ A simple 3D space game built with **Three.js**, where you control a spaceship an
 * 📈 Dynamic difficulty scaling
 * 🎥 Screen shake on collision
 * ⚡ FPS counter
+* 🧑 Game with friend
 
 ## 🛠️ Technologies Used
 
@@ -58,6 +60,8 @@ npx serve
 Make sure these files are in the root directory:
 
 * `spaceship.glb`
+* `plaggy_cc0-ufo-621.glb`
+* `quaternius_cc0-spaceship-1367.glb`
 * `explosion.mp3`
 
 ## 👤 Author
