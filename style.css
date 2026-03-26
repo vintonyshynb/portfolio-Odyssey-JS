@@ -1,0 +1,85 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background: black;
+}
+
+h1 {
+    color: white;
+    text-align: center;
+}
+
+#score {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    font-family: Arial;
+    font-size: 24px;
+}
+
+#bestScore {
+    position: absolute;
+    top: 20px;
+    left: 500px;
+    color: white;
+    font-family: Arial;
+    font-size: 24px;
+}
+
+#gameOver {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: red;
+    font-size: 48px;
+    font-family: Arial;
+    display: none;
+    text-align: center;
+}
+
+#fps {
+    position: absolute;
+    top: 20px;
+    left: 90%;
+    color: white;
+}
+
+#startScreen,
+#pauseScreen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 40px;
+    text-align: center;
+}
+
+#pauseScreen {
+    display: none;
+}
+
+#effectsHUD {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid white;
+    border-radius: 10px;
+    color: #00ffea;
+    font-family: monospace;
+    font-size: 20px;
+    text-align: center;
+    z-index: 100;
+}
+
+#gameMode {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    color: #00ffea;
+    font-family: Arial;
+    font-size: 20px;
+}
