@@ -16,7 +16,7 @@ let enemyStepDown = 0.5
 let level = 1
 let boss = null
 let bossHP = 20
-let bossSpawned = false
+let lastBossSpawnScore = 0;
 
 let gameMode = "runner"
 
@@ -130,7 +130,7 @@ loader.load('/quaternius_cc0-spaceship-1367.glb', (gltf) => {
 })
 
 function updateLevel() {
-    level = Math.floor(score / 100) + 1
+    level = Math.floor(score / 200) + 1
     enemySpeed = 0.02 + level * 0.005
 }
 
@@ -177,14 +177,24 @@ function updateEnemyBullets() {
 }
 
 function spawnBoss() {
-    const geo = new THREE.BoxGeometry(2, 2, 2)
-    const mat = new THREE.MeshStandardMaterial({ color: 0xff00ff })
+    if (boss) return
+
+    removeBoss()
+
+    const geo = new THREE.BoxGeometry(2.5, 2.5, 2.5)
+    const mat = new THREE.MeshStandardMaterial({
+        transparent: true,
+        opacity: 0
+    });
+
     boss = new THREE.Mesh(geo, mat)
+    boss.position.set(0, 1, -10)
+    boss.scale.set(1.3, 1.3, 1.3)
 
-    boss.position.set(-2, 3, -10)
     scene.add(boss)
-
     bossHP = 20
+
+    console.log(`Boss spawned at score: ${score} (HP: ${bossHP})`)
 }
 
 function bossShoot(boss) {
@@ -395,16 +405,14 @@ function removeBoss() {
         if (child.geometry) child.geometry.dispose()
         if (child.material) {
             if (Array.isArray(child.material)) {
-                child.material.forEach(m => m.dispose())
-            } else {
+                child.material.forEach(m => m?.dispose())
+            } else if (child.material.dispose) {
                 child.material.dispose()
             }
         }
     })
 
     boss = null
-    bossHP = 20
-    bossSpawned = false
 }
 
 function updateEngineEffect() {
@@ -442,7 +450,7 @@ document.addEventListener('keydown', (e) => {
         startScreen.style.display = "none"
         createEnemyGrid()
     }
-    if (e.key === 'p') {
+    if (e.key === 'Escape') {
         paused = !paused
         pauseScreen.style.display = paused ? "block" : "none"
     }
@@ -825,7 +833,7 @@ function checkBulletEnemyCollisions() {
 
             if (bossHP <= 0) {
                 createExplosion(boss.position);
-                scene.remove(boss);
+                scene.remove(boss)
                 boss = null;
                 addScore(100);
             }
@@ -1080,21 +1088,32 @@ function animate() {
             effectIntervals.forEach(i => clearInterval(i))
             effectIntervals = []
         }
-        if (gameMode == "invader" && score > 0 && score % 200 == 0 && !boss && !bossSpawned) {
-            spawnBoss()
-            bossSpawned = true
+
+        if (gameMode === "invader") {
+            if (score % 200 == 0 && Math.floor(score / 200) > Math.floor(lastBossSpawnScore / 200) && !boss) {
+                loader.load('/plaggy_cc0-ufo-621.glb', (gltf) => {
+                    boss = gltf.scene
+                    scene.add(boss)
+                    boss.scale.set(0.2, 0.2, 0.2)
+                    boss.position.set(0, 1, -10)
+                    boss.rotation.set(0, 0, 0)
+                })
+                spawnBoss()
+            }
         }
+
         updateBullets()
         updateDifficulty()
         updateParticles()
         updateLevel()
         updateEnemyBullets()
         updateBossBullets()
+
         if (boss) {
             bossShootCooldown -= 0.016
             if (bossShootCooldown <= 0) {
                 bossShoot(boss)
-                bossShootCooldown = 1.5
+                bossShootCooldown = 1.7
             }
         }
     }
@@ -1144,6 +1163,7 @@ function restartGame() {
 
     removeBoss()
 
+    lastBossSpawnScore = 0
     bossSpawned = false
 
     for (const key in activeEffects) activeEffects[key] = false
