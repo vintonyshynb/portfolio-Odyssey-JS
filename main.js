@@ -236,6 +236,31 @@ function checkBossCollision(obj, boss) {
     return bossBox.intersectsSphere(sphere)
 }
 
+function updateBossMovement() {
+    if (!boss) return
+    if (!player && !player2) return
+
+    let target = player
+    if (player2) {
+        const d1 = boss.position.distanceTo(player.position)
+        const d2 = boss.position.distanceTo(player2.position)
+        target = d2 < d1 ? player2 : player
+    }
+
+    const direction = new THREE.Vector3()
+    direction.subVectors(target.position, boss.position).normalize()
+
+    const speed = 0.03
+    boss.position.x += direction.x * speed
+    boss.position.y += direction.y * speed
+
+    const bounds = getBounds()
+    boss.position.x = Math.max(-bounds.x, Math.min(bounds.x, boss.position.x))
+    boss.position.y = Math.max(-bounds.y, Math.min(bounds.y, boss.position.y))
+
+    boss.rotation.x += 0.01
+}
+
 function createEnemyGrid() {
     if (gameMode == "invader") {
         const rows = 3
@@ -1110,6 +1135,7 @@ function animate() {
         updateBossBullets()
 
         if (boss) {
+            updateBossMovement()
             bossShootCooldown -= 0.016
             if (bossShootCooldown <= 0) {
                 bossShoot(boss)
